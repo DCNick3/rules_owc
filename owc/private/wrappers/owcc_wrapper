@@ -1,0 +1,48 @@
+#!/bin/bash
+set -euo pipefail
+
+MYTMPDIR="$(mktemp -d)"
+trap 'rm -rf -- "$MYTMPDIR"' EXIT
+
+
+OWC_DIR="$(realpath "$1")"
+shift
+
+TARGET="$1"
+shift
+
+EXE="$(realpath "$1")"
+shift
+
+SRCS=()
+for arg in "$@"; do
+    SRCS+=("$(realpath "$arg")")
+done
+
+
+function dump() {
+    echo "owcc_wrapper vars dump:" >&2
+    echo "$OWC_DIR" >&2
+    echo "$TARGET" >&2
+    echo "$EXE" >&2
+    echo "$SRCS" >&2
+}
+
+if [ "$TARGET" != "win95" ]; then
+    echo "Unsupported platform: $TARGET" >&2
+    dump
+    exit 1
+fi
+
+cd "$MYTMPDIR"
+
+TEMP_EXE="out.exe"
+
+PATH="${OWC_DIR}/binl64:$PATH" \
+WATCOM="${OWC_DIR}" \
+EDPATH="${OWC_DIR}/eddat" \
+WIPFC="${OWC_DIR}/wipfc" \
+INCLUDE="${OWC_DIR}/h:${OWC_DIR}/h/nt" \
+    "${OWC_DIR}/binl64/owcc" "-bwin95" "${SRCS}" "-o" "${TEMP_EXE}"
+
+cp "$TEMP_EXE" "$EXE"
