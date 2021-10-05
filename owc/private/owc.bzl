@@ -4,11 +4,14 @@ def owc_compile_action(ctx, sources, platform, exe):
     tool = ctx.executable._owcc_wrapper
     owc_dir = ctx.file._owc_dir
     
-    ctx.actions.run_shell(
-            inputs = sources + [tool] + ctx.files._owc_all,
+    ctx.actions.run(
+            inputs = sources + ctx.files._owc_all,
             outputs = [exe],
-            arguments = [tool.path, owc_dir.path, platform, exe.path] + [ x.path for x in sources ],
-            command = "bash \"$@\""
+            arguments = [owc_dir.path, platform, exe.path] + [ x.path for x in sources ],
+            executable = tool,
+            
+            mnemonic = "OwcCompile",
+            progress_message = "Compiling %s with owc" % exe.short_path,
         )
 
 def _owc_binary_impl(ctx):
@@ -24,7 +27,7 @@ owc_binary = rule(
     implementation = _owc_binary_impl,
     attrs = {
         "srcs": attr.label_list(mandatory=True, allow_files=True),
-        "platform": attr.string(mandatory=True, values=['win95']),
+        "platform": attr.string(values=['win95'], default='win95'),
         "_owcc_wrapper": attr.label(
             executable = True,
             cfg = "exec",
